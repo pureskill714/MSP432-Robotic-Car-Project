@@ -65,6 +65,7 @@
 volatile static uint32_t counterA = 0;
 volatile static uint32_t counterB = 0;
 volatile static uint32_t distanceMode = 0;
+volatile static uint32_t speedMode = 0;
 volatile static uint32_t stoppingDistance = 40;
 
 void moveForward(){
@@ -161,7 +162,7 @@ Timer_A_PWMConfig rightWheel =
     10000,
     TIMER_A_CAPTURECOMPARE_REGISTER_1,
     TIMER_A_OUTPUTMODE_RESET_SET,
-    7000
+    6000
 };
 
 /* PWM config for motor B (Left Wheel) */
@@ -172,7 +173,7 @@ Timer_A_PWMConfig leftWheel =
     10000,
     TIMER_A_CAPTURECOMPARE_REGISTER_2,
     TIMER_A_OUTPUTMODE_RESET_SET,
-    7000
+    6000
 };
 
 int main(void)
@@ -183,10 +184,12 @@ int main(void)
     /* Setting DCO to 24MHz*/
     CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_24);
 
-    /* Configuring LEDs as outpin pins */
+    /* Configuring all LEDs as outpin pins */
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
     GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0);
     GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN1);
     GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN2);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
     GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0);
     GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN1);
     GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN2);
@@ -292,7 +295,17 @@ void PORT1_IRQHandler(void){
     }
 
     else if (GPIO_getInterruptStatus(GPIO_PORT_P1, GPIO_PIN1) != 0){
-           moveForward();
+           speedMode+=1;
+           if (speedMode%3 == 1){
+               GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
+               rightWheel.dutyCycle = 8500;
+               leftWheel.dutyCycle = 8500;}
+
+           if (speedMode%2 == 0){
+              GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
+              rightWheel.dutyCycle = 6000;
+              leftWheel.dutyCycle = 6000;}
+
            GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN1);
         }
 
