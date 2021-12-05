@@ -61,6 +61,12 @@
 #include <stdio.h>
 #include <inttypes.h>
 
+/*Global variables */
+volatile static uint32_t counterA = 0;
+volatile static uint32_t counterB = 0;
+volatile static uint32_t distanceMode = 0;
+volatile static uint32_t stoppingDistance = 40;
+
 void moveForward(){
     /* Motor A move forward direction */
   GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN4);
@@ -125,6 +131,14 @@ void delayMs(int n){
  for (j = 0; j < n; j++)
  for (i = 750; i > 0; i--);}
 
+void set_All_LED2_Low()
+{
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN1);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN2);
+
+}
+
 /*UART configuration for Bluetooth HC-05 module */
 const eUSCI_UART_ConfigV1 bluetooth =
 {
@@ -169,9 +183,13 @@ int main(void)
     /* Setting DCO to 24MHz*/
     CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_24);
 
-    /* Configure P1.0 and set it to LOW */
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
+    /* Configuring LEDs as outpin pins */
+    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0);
+    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN1);
+    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN2);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN1);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN2);
 
     /* Configuring Timer_A to generate PWM in CCR1 and CCR2*/
    Timer_A_generatePWM(TIMER_A0_BASE, &rightWheel);
@@ -219,6 +237,14 @@ int main(void)
     GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P3, GPIO_PIN0);
     GPIO_clearInterruptFlag(GPIO_PORT_P3, GPIO_PIN0);
     GPIO_enableInterrupt(GPIO_PORT_P3, GPIO_PIN0);
+
+    /*Set S1 and S2 as input and set up the interrupts*/
+     GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P1, GPIO_PIN1);
+     GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P1, GPIO_PIN4);
+     GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN1);
+     GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN4);
+     GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN1);
+     GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN4);
 
     Interrupt_enableInterrupt(INT_PORT1);
     Interrupt_enableInterrupt(INT_PORT2);
@@ -271,7 +297,22 @@ void PORT1_IRQHandler(void){
         }
 
     else if (GPIO_getInterruptStatus(GPIO_PORT_P1, GPIO_PIN4) != 0){
-              moveBackward();
+              distanceMode +=1;
+              if (distanceMode%3 == 1){
+                  stoppingDistance = 40;
+                  set_All_LED2_Low();
+                  GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN1);}
+
+              if (distanceMode%3 == 2){
+                  stoppingDistance = 60;
+                  set_All_LED2_Low();
+                  GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN2);}
+
+              if (distanceMode%3 == 0){
+                   set_All_LED2_Low();
+                   stoppingDistance = 80;
+                   GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN0);}
+
               GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN4);
            }
 
@@ -279,15 +320,13 @@ void PORT1_IRQHandler(void){
 
 void PORT2_IRQHandler(void){
 
-    volatile static uint32_t counterA = 0;
-
-    //If Encoder A gets interrupted
+    //If Wheel Encoder A gets interrupted
     if (GPIO_getInterruptStatus(GPIO_PORT_P2, GPIO_PIN6) != 0){
         counterA+= 1;
         printf("Left Wheel Counter = %" PRIu32 "\n",counterA);
 
 
-        if (counterA == 40){
+        if (counterA == stoppingDistance){
             stopLeftWheel();
             counterA = 0;
         }
@@ -298,15 +337,12 @@ void PORT2_IRQHandler(void){
 }
 
 void PORT3_IRQHandler(void){
-
-    volatile static uint32_t counterB = 0;
-
-    //If Encoder B gets interrupted
+    //If Wheel Encoder B gets interrupted
     if (GPIO_getInterruptStatus(GPIO_PORT_P3, GPIO_PIN0) != 0){
         counterB+= 1;
         printf("Right Wheel Counter = %" PRIu32 "\n",counterB);
 
-        if (counterB == 40){
+        if (counterB == stoppingDistance){
             stopRightWheel();
             counterB = 0;
         }

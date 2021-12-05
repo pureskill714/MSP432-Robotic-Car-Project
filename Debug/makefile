@@ -130,34 +130,34 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXE_OUTPUTS += \
-empty_MSP_EXP432P401R_nortos_ccs.out \
+MSP432\ Robotic\ Car\ Version\ 1.0.out \
 
 EXE_OUTPUTS__QUOTED += \
-"empty_MSP_EXP432P401R_nortos_ccs.out" \
+"MSP432 Robotic Car Version 1.0.out" \
 
 BIN_OUTPUTS += \
-empty_MSP_EXP432P401R_nortos_ccs.hex \
+MSP432\ Robotic\ Car\ Version\ 1.0.hex \
 
 BIN_OUTPUTS__QUOTED += \
-"empty_MSP_EXP432P401R_nortos_ccs.hex" \
+"MSP432 Robotic Car Version 1.0.hex" \
 
 
 # All Target
 all: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
-	@$(MAKE) --no-print-directory -Onone "empty_MSP_EXP432P401R_nortos_ccs.out"
+	@$(MAKE) --no-print-directory -Onone "MSP432 Robotic Car Version 1.0.out"
 
 # Tool invocations
-empty_MSP_EXP432P401R_nortos_ccs.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
+MSP432\ Robotic\ Car\ Version\ 1.0.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: Arm Linker'
-	"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-arm_20.2.5.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 -me --advice:power=none --define=__MSP432P401R__ --define=DeviceFamily_MSP432P401x -g --diag_warning=225 --diag_warning=255 --diag_wrap=off --display_error_number --gen_func_subsections=on -z -m"empty_MSP_EXP432P401R_nortos_ccs.map" --stack_size=512 -i"C:/ti/simplelink_msp432p4_sdk_3_40_01_02/source" -i"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-arm_20.2.5.LTS/lib" --diag_wrap=off --display_error_number --warn_sections --xml_link_info="empty_MSP_EXP432P401R_nortos_ccs_linkInfo.xml" --rom_model -o "empty_MSP_EXP432P401R_nortos_ccs.out" $(ORDERED_OBJS)
+	"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-arm_20.2.5.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 -me --advice:power=none --define=__MSP432P401R__ --define=DeviceFamily_MSP432P401x -g --diag_warning=225 --diag_warning=255 --diag_wrap=off --display_error_number --gen_func_subsections=on -z -m"MSP432 Robotic Car Version 1.0.map" --stack_size=512 -i"C:/ti/simplelink_msp432p4_sdk_3_40_01_02/source" -i"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-arm_20.2.5.LTS/lib" --diag_wrap=off --display_error_number --warn_sections --xml_link_info="MSP432 Robotic Car Version 1.0_linkInfo.xml" --rom_model -o "MSP432 Robotic Car Version 1.0.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
-empty_MSP_EXP432P401R_nortos_ccs.hex: $(EXE_OUTPUTS)
+MSP432\ Robotic\ Car\ Version\ 1.0.hex: $(EXE_OUTPUTS)
 	@echo 'Building secondary target: "$@"'
 	@echo 'Invoking: Arm Hex Utility'
-	"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-arm_20.2.5.LTS/bin/armhex" --diag_wrap=off -o "empty_MSP_EXP432P401R_nortos_ccs.hex" $(EXE_OUTPUTS__QUOTED)
+	"C:/ti/ccs1040/ccs/tools/compiler/ti-cgt-arm_20.2.5.LTS/bin/armhex" --diag_wrap=off -o "MSP432 Robotic Car Version 1.0.hex" $(EXE_OUTPUTS__QUOTED)
 	@echo 'Finished building secondary target: "$@"'
 	@echo ' '
 
