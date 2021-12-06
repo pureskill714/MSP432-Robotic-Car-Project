@@ -463,7 +463,7 @@ int main(void)
     GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN7);
     GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN7);
 
-    /* Configure pin P2.6 as interrupt input for Wheel encoder */
+    /* Configure pin P4.1 as interrupt input for Wheel encoder */
     GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P4, GPIO_PIN1);
     GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN1);
    GPIO_enableInterrupt(GPIO_PORT_P4, GPIO_PIN1);
@@ -503,47 +503,53 @@ int main(void)
               GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
           }
           else{
-              GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);}
+              GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
+		  }
         }
 }
 
 /*Interrupt Service Routine for UART (Bluetooth) */
 void EUSCIA2_IRQHandler(void)
 {
-    char receivedValue = UART_receiveData(EUSCI_A2_BASE);
-       while ((UCA0IFG & 0x02) == 0){};//check TXIFG bit is 1 - > TXBUF is empty
+	char receivedValue = UART_receiveData(EUSCI_A2_BASE);
+	while ((UCA0IFG & 0x02) == 0){};//check TXIFG bit is 1 - > TXBUF is empty
 
-       if (receivedValue == 'w' || receivedValue == 'W'){  // Car moves forward
-          counterA = 0;
-          counterB = 0;
-          moveForward();
-          uPrintf("Car is moving forward.... ");}
+	if (receivedValue == 'w' || receivedValue == 'W'){  // Car moves forward
+		counterA = 0;
+		counterB = 0;
+		moveForward();
+		//uPrintf("Car is moving forward.... ");
+	}
 
-      if (receivedValue == 's' || receivedValue == 'S'){  // Car stops
-          stop();
-          uPrintf("Car has stopped....  ");}
+	if (receivedValue == 's' || receivedValue == 'S'){  // Car stops
+		stop();
+		//uPrintf("Car has stopped....  ");
+	}
 
-      if (receivedValue == 'x' || receivedValue == 'X'){  // Car moves backward
-          counterA = 0;
-          counterB = 0;
-          moveBackward();
-          uPrintf("Car is moving backward....  ");}
+	if (receivedValue == 'x' || receivedValue == 'X'){  // Car moves backward
+		counterA = 0;
+		counterB = 0;
+		moveBackward();
+		//uPrintf("Car is moving backward....  ");
+	}
 
-      if (receivedValue == 'd' || receivedValue == 'D'){  // Car moves right
-          counterA = 0;
-          counterB = 0;
-          moveRight();
-          uPrintf("Car is rotating right....  ");
-          delayMs(1500);
-          stop();}
+	if (receivedValue == 'd' || receivedValue == 'D'){  // Car moves right
+		counterA = 0;
+		counterB = 0;
+		moveRight();
+		//uPrintf("Car is rotating right....  ");
+		delayMs(1500);
+		stop();
+	}
 
-      if (receivedValue == 'a'|| receivedValue == 'A'){   // Car moves left
-          counterA = 0;
-          counterB = 0;
-          moveLeft();
-          uPrintf("Car is rotating left....  ");
-          delayMs(1500);
-          stop();}
+	if (receivedValue == 'a'|| receivedValue == 'A'){   // Car moves left
+		counterA = 0;
+		counterB = 0;
+		moveLeft();
+		//uPrintf("Car is rotating left....  ");
+		delayMs(1500);
+		stop();
+	}
 }
 
 /*ISR for IR sensors and P1.1 switch toggles PWM to either 60% or 85% */
@@ -559,75 +565,62 @@ void PORT1_IRQHandler(void){
         GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN7);
     }
 
-    else if (GPIO_getInterruptStatus(GPIO_PORT_P1, GPIO_PIN1) != 0){
-           speedMode+=1;
-           if (speedMode%3 == 1){
+    if (GPIO_getInterruptStatus(GPIO_PORT_P1, GPIO_PIN1) != 0){
+           speedMode = 1 - speedMode; //switch between 1 and 0
+           if (speedMode == 1){
                rightWheel.dutyCycle = 8500;
-               leftWheel.dutyCycle = 8500;}
+               leftWheel.dutyCycle = 8500;
+			   }
 
-           if (speedMode%2 == 0){
+            else {
               rightWheel.dutyCycle = 6000;
-              leftWheel.dutyCycle = 6000;}
+              leftWheel.dutyCycle = 6000;
+			  }
 
            GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN1);
         }
 
-    else if (GPIO_getInterruptStatus(GPIO_PORT_P1, GPIO_PIN4) != 0){
-              distanceMode +=1;
-              if (distanceMode%3 == 1){
-                  stoppingDistance = 40;
-                  set_All_LED2_Low();
-                  GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN1);}
+    if (GPIO_getInterruptStatus(GPIO_PORT_P1, GPIO_PIN4) != 0){
+              
+		if (distanceMode == 0){
+			stoppingDistance = 40;
+			set_All_LED2_Low();
+			GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN1);
+		}
 
-              if (distanceMode%3 == 2){
-                  stoppingDistance = 60;
-                  set_All_LED2_Low();
-                  GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN2);}
+		else if (distanceMode == 1){
+			stoppingDistance = 60;
+			set_All_LED2_Low();
+			GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN2);
+			distanceMode = 0
+		}
 
-              if (distanceMode%3 == 0){
-                   set_All_LED2_Low();
-                   stoppingDistance = 80;
-                   GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN0);}
-
-              GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN4);
-           }
+		else{
+			set_All_LED2_Low();
+			stoppingDistance = 80;
+			GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN0);
+			distanceMode = 0;
+		}
+				   
+		distanceMode +=1;
+		
+		if (distanceMode > 2){
+			distanceMode = 0;
+		}
+		
+		GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN4);
+	}
 
 }
 
-/*ISR for the PID controller */
-void PORT2_IRQHandler(void){
-
-    uint32_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P2);
-        //check interrupt happen on left encoder
-        if(status & BIT6){
-            leftCount++;
-
-            if(leftCount == 50){
-    //            GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0); //for debug purpose
-                CarPID(leftCount,rightCount);       //call carPID when count reach 50
-                if(rightWheel.dutyCycle >= 9000)     //ensure pwd duty circle not excceed the limit
-                    rightWheel.dutyCycle = 6000;
-                    leftWheel.dutyCycle = 6000;
-                    Timer_A_generatePWM(TIMER_A0_BASE, &rightWheel);
-                    Timer_A_generatePWM(TIMER_A0_BASE, &leftWheel);
-                leftCount = 0;                      //reset left count and rightcount after PID applied
-                rightCount = 0;
-            }
-
-        }
-        if(status & BIT7){
-            rightCount++;
-        }
-
-        GPIO_clearInterruptFlag(GPIO_PORT_P2, status);
-}
 
 /*ISR for the wheel encoder (Right Wheel) */
 void PORT3_IRQHandler(void){
     //If Wheel Encoder B gets interrupted
     if (GPIO_getInterruptStatus(GPIO_PORT_P3, GPIO_PIN0) != 0){
         counterB+= 1;
-        printf("Right Wheel Counter = %" PRIu32 "\n",counterB);
+		rightCount++;
+        //printf("Right Wheel Counter = %" PRIu32 "\n",counterB);
 
         if (counterB == stoppingDistance){
             stopRightWheel();
@@ -643,7 +636,19 @@ void PORT4_IRQHandler(void){
     //If Wheel Encoder B gets interrupted
     if (GPIO_getInterruptStatus(GPIO_PORT_P4, GPIO_PIN1) != 0){
         counterA+= 1;
-        printf("Left Wheel Counter = %" PRIu32 "\n",counterA);
+		leftCount++;
+		if(leftCount == 50){
+//            GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0); //for debug purpose
+			CarPID(leftCount,rightCount);       //call carPID when count reach 50
+			if(rightWheel.dutyCycle >= 9000)     //ensure pwd duty circle not excceed the limit
+				rightWheel.dutyCycle = 6000;
+				leftWheel.dutyCycle = 6000;
+				Timer_A_generatePWM(TIMER_A0_BASE, &rightWheel);
+				Timer_A_generatePWM(TIMER_A0_BASE, &leftWheel);
+			leftCount = 0;                      //reset left count and rightcount after PID applied
+			rightCount = 0;
+		}
+        //printf("Left Wheel Counter = %" PRIu32 "\n",counterA);
 
         if (counterA == stoppingDistance){
             stopLeftWheel();
