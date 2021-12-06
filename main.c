@@ -69,7 +69,7 @@ volatile static uint32_t speedMode = 0;
 volatile static uint32_t stoppingDistance = 40;
 
 void moveForward(){
-    /* Motor A move forward direction */
+   /* Motor A move forward direction */
   GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN4);
   GPIO_setOutputHighOnPin(GPIO_PORT_P4, GPIO_PIN5);
 
@@ -176,6 +176,97 @@ Timer_A_PWMConfig leftWheel =
     6000
 };
 
+/*global variable for PID*/
+int lastErrorLeft = 0;
+int lastErrorRight = 0;
+int totalErrorLeft = 0;
+int totalErrorRight = 0;
+int PWML = 0;
+int PWMR = 0;
+uint32_t leftCount = 0;
+uint32_t rightCount = 0;
+
+/* use to restrict the input between 1 and 0*/
+float checkOne(float num){
+    if (num > 1) {
+        num = 1;
+    } else if (num < 0) {
+        num = 0;
+    }
+    return num;
+}
+
+/* use to generate the new PWM */
+void newPWM(int PWML, int PWMR){
+    Timer_A_generatePWM(TIMER_A0_BASE, &rightWheel);
+    Timer_A_generatePWM(TIMER_A0_BASE, &leftWheel);
+}
+
+/* carPID*/
+/* take leftcount and right count as input*/
+/* call newPWM() to generate the new PWM */
+void CarPID(int leftcount, int rightcount) {
+
+    //Error of previous time
+    int lastErrorLeft = 0;
+    int lastErrorRight = 0;
+
+    // Set the target count, use as end point (range)
+    int targetCount = 50;
+
+    // Calculate the Porportional Control
+    float Kp = 0.03; // Proportional gain
+
+    // Get the error for left and right enconder
+    int errorLeft = targetCount - leftcount;
+    int errorRight = targetCount - rightcount;
+
+    /* check if the difference of error is in acceptable range of  -3 <  error < 3 */
+    /* can change accordingly */
+    if ((errorLeft < -3 || errorLeft > 3 ) || (errorRight < -3 || errorRight > 3 )) {
+        float PoutLeft = Kp * errorLeft;
+        float PoutRight = Kp * errorRight;
+
+        PoutLeft = checkOne(PoutLeft);
+        PoutRight = checkOne(PoutRight);
+
+        // Calculate the Derivative Control
+        float Kd = 0.15; // Derivative gain
+        float DoutLeft = Kd * (errorLeft - lastErrorLeft);
+        float DoutRight = Kd * (errorRight - lastErrorRight);
+
+        // Update the last error (previous)
+        lastErrorLeft = errorLeft;
+        lastErrorRight = errorRight;
+
+        // Calculate the Integral Control
+        float Ki = 0.005; // Integral gain
+        float IoutLeft = Ki * totalErrorLeft;
+        float IoutRight = Ki * totalErrorRight;
+
+        // Add error of this round to the total error
+        totalErrorLeft += errorLeft;
+        totalErrorRight += errorRight;
+
+        // Calculate the PID output
+        float leftPIDOutput = PoutLeft + DoutLeft + IoutLeft;
+        float rightPIDOutput = PoutRight + DoutRight + IoutRight;
+
+        // Ensure the PID output is within the range of 0 to 1
+        leftPIDOutput = checkOne(leftPIDOutput);
+        rightPIDOutput = checkOne(rightPIDOutput);
+
+
+        // Set the PWM for the left and right motor
+        PWML = (int)((1+leftPIDOutput) * rightWheel.dutyCycle);
+        PWMR = (int)((1+rightPIDOutput) * leftWheel.dutyCycle);
+
+        // Set the PWM for the left and right motor after PID adjustment
+        newPWM(PWML, PWMR);
+    }
+
+}
+
 int main(void)
 {
     /* Stop Watchdog  */
@@ -249,10 +340,18 @@ int main(void)
      GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN1);
      GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN4);
 
+    /*Enabling all ISR */
     Interrupt_enableInterrupt(INT_PORT1);
     Interrupt_enableInterrupt(INT_PORT2);
     Interrupt_enableInterrupt(INT_PORT3);
     Interrupt_enableMaster();
+
+    while(1)
+        {
+        //use this to test what is the new generate pwm by uncommenting and printf statement in carPID fucntion
+    //    CarPID(22,18);
+
+        }
 
 }
 
@@ -341,6 +440,8 @@ void PORT1_IRQHandler(void){
 
 void PORT2_IRQHandler(void){
 
+    uint32_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P2);
+
     //If Wheel Encoder A gets interrupted
     if (GPIO_getInterruptStatus(GPIO_PORT_P2, GPIO_PIN6) != 0){
         counterA+= 1;
@@ -354,6 +455,31 @@ void PORT2_IRQHandler(void){
 
         GPIO_clearInterruptFlag(GPIO_PORT_P2, GPIO_PIN6);
     }
+
+
+
+        //check interrupt happen on left encoder
+        if(status & BIT6){
+            leftCount++;
+
+            if(leftCount == 50){
+    //            GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0); //for debug purpose
+                CarPID(leftCount,rightCount);       //call carPID when count reach 50
+                if(rightWheel.dutyCycle >= 9000)     //ensure pwd duty circle not excceed the limit
+                    rightWheel.dutyCycle = 6000;
+                    leftWheel.dutyCycle = 6000;
+                    Timer_A_generatePWM(TIMER_A0_BASE, &rightWheel);
+                    Timer_A_generatePWM(TIMER_A0_BASE, &leftWheel);
+                leftCount = 0;                      //reset left count and rightcount after PID applied
+                rightCount = 0;
+            }
+
+        }
+        if(status & BIT7){
+            rightCount++;
+        }
+
+        GPIO_clearInterruptFlag(GPIO_PORT_P2, status);
 
 }
 
