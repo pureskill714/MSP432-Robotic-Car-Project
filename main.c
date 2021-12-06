@@ -176,6 +176,8 @@ Timer_A_PWMConfig leftWheel =
     6000
 };
 
+//PID controller section
+/*************************************************************/
 /*global variable for PID*/
 int lastErrorLeft = 0;
 int lastErrorRight = 0;
@@ -266,6 +268,7 @@ void CarPID(int leftcount, int rightcount) {
     }
 
 }
+/*********************************************************************************/
 
 int main(void)
 {
@@ -323,9 +326,9 @@ int main(void)
     GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN7);
 
     /* Configure pin P2.6 as interrupt input for Wheel encoder */
-    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P2, GPIO_PIN6);
-    GPIO_clearInterruptFlag(GPIO_PORT_P2, GPIO_PIN6);
-   GPIO_enableInterrupt(GPIO_PORT_P2, GPIO_PIN6);
+    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P4, GPIO_PIN1);
+    GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN1);
+   GPIO_enableInterrupt(GPIO_PORT_P4, GPIO_PIN1);
 
    /* Configure pin P3.0 as interrupt input for Wheel encoder */
     GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P3, GPIO_PIN0);
@@ -344,6 +347,7 @@ int main(void)
     Interrupt_enableInterrupt(INT_PORT1);
     Interrupt_enableInterrupt(INT_PORT2);
     Interrupt_enableInterrupt(INT_PORT3);
+    Interrupt_enableInterrupt(INT_PORT4);
     Interrupt_enableMaster();
 
     while(1)
@@ -441,23 +445,6 @@ void PORT1_IRQHandler(void){
 void PORT2_IRQHandler(void){
 
     uint32_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P2);
-
-    //If Wheel Encoder A gets interrupted
-    if (GPIO_getInterruptStatus(GPIO_PORT_P2, GPIO_PIN6) != 0){
-        counterA+= 1;
-        printf("Left Wheel Counter = %" PRIu32 "\n",counterA);
-
-
-        if (counterA == stoppingDistance){
-            stopLeftWheel();
-            counterA = 0;
-        }
-
-        GPIO_clearInterruptFlag(GPIO_PORT_P2, GPIO_PIN6);
-    }
-
-
-
         //check interrupt happen on left encoder
         if(status & BIT6){
             leftCount++;
@@ -480,7 +467,6 @@ void PORT2_IRQHandler(void){
         }
 
         GPIO_clearInterruptFlag(GPIO_PORT_P2, status);
-
 }
 
 void PORT3_IRQHandler(void){
@@ -495,6 +481,21 @@ void PORT3_IRQHandler(void){
         }
 
         GPIO_clearInterruptFlag(GPIO_PORT_P3, GPIO_PIN0);
+    }
+}
+
+void PORT4_IRQHandler(void){
+    //If Wheel Encoder B gets interrupted
+    if (GPIO_getInterruptStatus(GPIO_PORT_P4, GPIO_PIN1) != 0){
+        counterA+= 1;
+        printf("Left Wheel Counter = %" PRIu32 "\n",counterA);
+
+        if (counterA == stoppingDistance){
+            stopLeftWheel();
+            counterA = 0;
+        }
+
+        GPIO_clearInterruptFlag(GPIO_PORT_P4, GPIO_PIN1);
     }
 }
 
