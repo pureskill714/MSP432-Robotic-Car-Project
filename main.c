@@ -41,6 +41,11 @@
  *              x = Move car backward
  *              a = Move car
  *
+ *              3. Pressing Switch P1.4 will toggle different distance that the car will travel.
+ *                 If LED is green, car will travel 40 steps
+ *                 If LED is blue, car will travel 60 steps
+ *                 If LED is red, car will travel 80 steps
+ *
  *
  *                MSP432P401
  *             ------------------
@@ -132,12 +137,24 @@ void delayMs(int n){
  for (j = 0; j < n; j++)
  for (i = 750; i > 0; i--);}
 
+/* Off all LED2 lights */
 void set_All_LED2_Low()
 {
     GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0);
     GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN1);
     GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN2);
 
+}
+
+/*Print data to Bluetooth terminal*/
+void uPrintf(unsigned char * TxArray)
+{
+    unsigned short i = 0;
+    while(*(TxArray+i))
+    {
+        UART_transmitData(EUSCI_A2_BASE, *(TxArray+i));  // Write the character at the location specified by pointer
+        i++;                                             // Increment pointer to point to the next character
+    }
 }
 
 /*UART configuration for Bluetooth HC-05 module */
@@ -299,13 +316,13 @@ int main(void)
    UART_enableInterrupt(EUSCI_A2_BASE, EUSCI_A_UART_RECEIVE_INTERRUPT);
    Interrupt_enableInterrupt(INT_EUSCIA2);
 
-   /* Configuring P4.4 and P4.5 as Output pins */
+   /* Configuring P4.4 and P4.5 as Output pins for motor driver */
    GPIO_setAsOutputPin(GPIO_PORT_P4, GPIO_PIN4);
    GPIO_setAsOutputPin(GPIO_PORT_P4, GPIO_PIN5);
    GPIO_setOutputHighOnPin(GPIO_PORT_P4, GPIO_PIN4);
    GPIO_setOutputHighOnPin(GPIO_PORT_P4, GPIO_PIN5);
 
-   /* Configuring P4.2 and P4.0 as Output pins */
+   /* Configuring P4.2 and P4.0 as Output pins for motor driver */
    GPIO_setAsOutputPin(GPIO_PORT_P4, GPIO_PIN2);
    GPIO_setAsOutputPin(GPIO_PORT_P4, GPIO_PIN0);
    GPIO_setOutputHighOnPin(GPIO_PORT_P4, GPIO_PIN2);
@@ -368,20 +385,24 @@ void EUSCIA2_IRQHandler(void)
        if (receivedValue == 'w' || receivedValue == 'W'){  // Car moves forward
           counterA = 0;
           counterB = 0;
-          moveForward();}
+          moveForward();
+          uPrintf("Car is moving forward.... ");}
 
       if (receivedValue == 's' || receivedValue == 'S'){  // Car stops
-          stop();}
+          stop();
+          uPrintf("Car has stopped....  ");}
 
       if (receivedValue == 'x' || receivedValue == 'X'){  // Car moves backward
           counterA = 0;
           counterB = 0;
-          moveBackward();}
+          moveBackward();
+          uPrintf("Car is moving backward....  ");}
 
       if (receivedValue == 'd' || receivedValue == 'D'){  // Car moves right
           counterA = 0;
           counterB = 0;
           moveRight();
+          uPrintf("Car is rotating right....  ");
           delayMs(1500);
           stop();}
 
@@ -389,10 +410,12 @@ void EUSCIA2_IRQHandler(void)
           counterA = 0;
           counterB = 0;
           moveLeft();
+          uPrintf("Car is rotating left....  ");
           delayMs(1500);
           stop();}
 }
 
+/*ISR for IR sensors and P1.1 switch toggles PWM to either 60% or 85% */
 void PORT1_IRQHandler(void){
     if ((GPIO_getInterruptStatus(GPIO_PORT_P1, GPIO_PIN6) != 0)){
         stop();
@@ -442,6 +465,7 @@ void PORT1_IRQHandler(void){
 
 }
 
+/*ISR for the PID controller */
 void PORT2_IRQHandler(void){
 
     uint32_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P2);
@@ -469,6 +493,7 @@ void PORT2_IRQHandler(void){
         GPIO_clearInterruptFlag(GPIO_PORT_P2, status);
 }
 
+/*ISR for the wheel encoder (Right Wheel) */
 void PORT3_IRQHandler(void){
     //If Wheel Encoder B gets interrupted
     if (GPIO_getInterruptStatus(GPIO_PORT_P3, GPIO_PIN0) != 0){
@@ -484,6 +509,7 @@ void PORT3_IRQHandler(void){
     }
 }
 
+/*ISR for the wheel encoder (Left Wheel)*/
 void PORT4_IRQHandler(void){
     //If Wheel Encoder B gets interrupted
     if (GPIO_getInterruptStatus(GPIO_PORT_P4, GPIO_PIN1) != 0){
