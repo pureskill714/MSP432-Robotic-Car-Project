@@ -263,20 +263,28 @@ void EUSCIA2_IRQHandler(void)
        while ((UCA0IFG & 0x02) == 0){};//check TXIFG bit is 1 - > TXBUF is empty
 
        if (receivedValue == 'w' || receivedValue == 'W'){  // Car moves forward
+          counterA = 0;
+          counterB = 0;
           moveForward();}
 
       if (receivedValue == 's' || receivedValue == 'S'){  // Car stops
           stop();}
 
       if (receivedValue == 'x' || receivedValue == 'X'){  // Car moves backward
+          counterA = 0;
+          counterB = 0;
           moveBackward();}
 
       if (receivedValue == 'd' || receivedValue == 'D'){  // Car moves right
+          counterA = 0;
+          counterB = 0;
           moveRight();
           delayMs(1500);
           stop();}
 
       if (receivedValue == 'a'|| receivedValue == 'A'){   // Car moves left
+          counterA = 0;
+          counterB = 0;
           moveLeft();
           delayMs(1500);
           stop();}
