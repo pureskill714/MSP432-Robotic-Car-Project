@@ -48,9 +48,8 @@
  *                 If LED is red, car will travel 80 steps
  *
  *
- *             4. Pressing Switch P1.1 will toggle between 60% PWM and 85% PWM
- *                If LED P1.0 is red, PWM is set to 85%
- *                If LED P1.0 is off, PWM is set to 60%
+ *             4. Pressing Switch P1.1 will spin the car around
+ *
  *
  *
  *                MSP432P401
@@ -76,7 +75,6 @@
 volatile static uint32_t counterA = 0;
 volatile static uint32_t counterB = 0;
 volatile static uint32_t distanceMode = 0;
-volatile static uint32_t speedMode = 0;
 volatile static uint32_t stoppingDistance = 40;
 
 
@@ -298,7 +296,7 @@ Timer_A_PWMConfig rightWheel =
     10000,
     TIMER_A_CAPTURECOMPARE_REGISTER_1,
     TIMER_A_OUTPUTMODE_RESET_SET,
-    6000
+    8500
 };
 
 /* PWM config for motor B (Left Wheel) */
@@ -309,7 +307,7 @@ Timer_A_PWMConfig leftWheel =
     10000,
     TIMER_A_CAPTURECOMPARE_REGISTER_2,
     TIMER_A_OUTPUTMODE_RESET_SET,
-    6000
+    8500
 };
 
 //PID controller section
@@ -538,7 +536,7 @@ void EUSCIA2_IRQHandler(void)
 		counterB = 0;
 		moveRight();
 		//uPrintf("Car is rotating right....  ");
-		delayMs(1500);
+		delayMs(3000);
 		stop();
 	}
 
@@ -547,7 +545,7 @@ void EUSCIA2_IRQHandler(void)
 		counterB = 0;
 		moveLeft();
 		//uPrintf("Car is rotating left....  ");
-		delayMs(1500);
+		delayMs(3000);
 		stop();
 	}
 }
@@ -565,21 +563,6 @@ void PORT1_IRQHandler(void){
         GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN7);
     }
 
-    if (GPIO_getInterruptStatus(GPIO_PORT_P1, GPIO_PIN1) != 0){
-           speedMode = 1 - speedMode; //switch between 1 and 0
-           if (speedMode == 1){
-               rightWheel.dutyCycle = 8500;
-               leftWheel.dutyCycle = 8500;
-			   }
-
-            else {
-              rightWheel.dutyCycle = 6000;
-              leftWheel.dutyCycle = 6000;
-			  }
-
-           GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN1);
-        }
-
     if (GPIO_getInterruptStatus(GPIO_PORT_P1, GPIO_PIN4) != 0){
               
 		if (distanceMode == 0){
@@ -592,14 +575,12 @@ void PORT1_IRQHandler(void){
 			stoppingDistance = 60;
 			set_All_LED2_Low();
 			GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN2);
-			distanceMode = 0
 		}
 
 		else{
 			set_All_LED2_Low();
 			stoppingDistance = 80;
 			GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN0);
-			distanceMode = 0;
 		}
 				   
 		distanceMode +=1;
@@ -610,6 +591,11 @@ void PORT1_IRQHandler(void){
 		
 		GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN4);
 	}
+
+    if (GPIO_getInterruptStatus(GPIO_PORT_P1, GPIO_PIN1) != 0){
+        moveRight();
+        GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN1);
+    }
 
 }
 
